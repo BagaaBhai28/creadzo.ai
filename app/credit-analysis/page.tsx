@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
+import Link from "next/link";
 import Navbar from "@/components/Navbar";
 
 /* ───────── Type Definitions ───────── */
@@ -89,12 +90,29 @@ interface TrustFactorAnalysis {
     riskFactors: RiskFactor[];
 }
 
+interface LimitFactor {
+    factor: string;
+    impact: string;
+    detail: string;
+}
+
+interface CreditLimitBreakdown {
+    approvedLimit: number;
+    maxEligibleLimit: number;
+    limitReasoning: string;
+    incomeToLimitRatio: string;
+    limitFactors: LimitFactor[];
+    repaymentCapacity: number;
+    confidenceLevel: string;
+}
+
 interface FullAnalysis {
     scoreOverview: ScoreOverview;
     improvementSuggestions: ImprovementSuggestions;
     spendingAnalysis: SpendingAnalysis;
     aiInsights: AiInsights;
     trustFactorAnalysis: TrustFactorAnalysis;
+    creditLimitBreakdown: CreditLimitBreakdown;
     recommendedCreditLimit: number;
     scorePercentile: number;
 }
@@ -109,6 +127,20 @@ export default function CreditAnalysisPage() {
     const [bankStatementText, setBankStatementText] = useState("");
     const [dragActive, setDragActive] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    /* ── Persist analysis to localStorage ── */
+    useEffect(() => {
+        if (analysis) {
+            localStorage.setItem("credzoAnalysis", JSON.stringify({
+                creditLimit: analysis.creditLimitBreakdown?.approvedLimit || analysis.recommendedCreditLimit,
+                trustScore: analysis.scoreOverview.trustScore,
+                trustLevel: analysis.scoreOverview.trustLevel,
+                scorePercentile: analysis.scorePercentile,
+                repaymentCapacity: analysis.creditLimitBreakdown?.repaymentCapacity,
+                timestamp: Date.now(),
+            }));
+        }
+    }, [analysis]);
 
     /* ── File handling ── */
     const handleFileSelect = (file: File) => {
@@ -235,10 +267,10 @@ export default function CreditAnalysisPage() {
                         {/* PDF Upload */}
                         <div
                             className={`bg-white rounded-3xl p-10 border-2 border-dashed transition-all cursor-pointer ${dragActive
-                                    ? "border-teal-500 bg-teal-50/50"
-                                    : uploadedFile
-                                        ? "border-teal-300 bg-teal-50/30"
-                                        : "border-stone-200 hover:border-teal-300"
+                                ? "border-teal-500 bg-teal-50/50"
+                                : uploadedFile
+                                    ? "border-teal-300 bg-teal-50/30"
+                                    : "border-stone-200 hover:border-teal-300"
                                 }`}
                             onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
                             onDragLeave={() => setDragActive(false)}
@@ -361,6 +393,106 @@ export default function CreditAnalysisPage() {
                             </button>
                         </div>
 
+                        {/* ═══════════════════════════════════
+                    CREDIT LIMIT APPROVED HERO CARD
+                ═══════════════════════════════════ */}
+                        <div className="bg-gradient-to-br from-teal-700 via-teal-800 to-stone-900 rounded-3xl p-8 mb-6 shadow-2xl shadow-teal-900/30 relative overflow-hidden">
+                            {/* Decorative elements */}
+                            <div className="absolute -top-20 -right-20 w-72 h-72 bg-teal-400/10 rounded-full blur-3xl" />
+                            <div className="absolute -bottom-16 -left-16 w-56 h-56 bg-amber-400/8 rounded-full blur-3xl" />
+
+                            <div className="relative z-10">
+                                {/* Badge */}
+                                <div className="flex items-center gap-2 mb-5">
+                                    <div className="bg-teal-400/20 border border-teal-400/30 text-teal-300 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        CREDIT LIMIT APPROVED
+                                    </div>
+                                    {analysis.creditLimitBreakdown?.confidenceLevel && (
+                                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${analysis.creditLimitBreakdown.confidenceLevel === "High" ? "bg-teal-400/15 text-teal-300" :
+                                                analysis.creditLimitBreakdown.confidenceLevel === "Medium" ? "bg-amber-400/15 text-amber-300" :
+                                                    "bg-red-400/15 text-red-300"
+                                            }`}>
+                                            {analysis.creditLimitBreakdown.confidenceLevel} Confidence
+                                        </span>
+                                    )}
+                                </div>
+
+                                {/* Main amount */}
+                                <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+                                    <div>
+                                        <p className="text-teal-300/70 text-sm font-medium mb-1">Your Approved Credit Limit</p>
+                                        <div className="flex items-baseline gap-2">
+                                            <span className="text-6xl font-bold text-white tracking-tight">
+                                                ₹{(analysis.creditLimitBreakdown?.approvedLimit || analysis.recommendedCreditLimit).toLocaleString()}
+                                            </span>
+                                        </div>
+                                        {analysis.creditLimitBreakdown?.maxEligibleLimit && (
+                                            <p className="text-teal-300/50 text-sm mt-2">
+                                                Max eligible: ₹{analysis.creditLimitBreakdown.maxEligibleLimit.toLocaleString()}
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    <Link
+                                        href="/loan-application"
+                                        className="bg-white text-teal-800 font-bold text-lg px-8 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] flex items-center justify-center gap-2 shrink-0"
+                                    >
+                                        Apply for Loan
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                                        </svg>
+                                    </Link>
+                                </div>
+
+                                {/* Stats row */}
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-8">
+                                    {analysis.creditLimitBreakdown?.incomeToLimitRatio && (
+                                        <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+                                            <p className="text-[10px] text-teal-300/50 uppercase font-medium">Income Ratio</p>
+                                            <p className="text-white font-bold mt-0.5">{analysis.creditLimitBreakdown.incomeToLimitRatio}</p>
+                                        </div>
+                                    )}
+                                    {analysis.creditLimitBreakdown?.repaymentCapacity && (
+                                        <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+                                            <p className="text-[10px] text-teal-300/50 uppercase font-medium">Monthly Repayment</p>
+                                            <p className="text-white font-bold mt-0.5">₹{analysis.creditLimitBreakdown.repaymentCapacity.toLocaleString()}</p>
+                                        </div>
+                                    )}
+                                    <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+                                        <p className="text-[10px] text-teal-300/50 uppercase font-medium">Trust Score</p>
+                                        <p className="text-white font-bold mt-0.5">{analysis.scoreOverview.trustScore}/900</p>
+                                    </div>
+                                    <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+                                        <p className="text-[10px] text-teal-300/50 uppercase font-medium">Percentile</p>
+                                        <p className="text-white font-bold mt-0.5">Top {100 - analysis.scorePercentile}%</p>
+                                    </div>
+                                </div>
+
+                                {/* Reasoning */}
+                                {analysis.creditLimitBreakdown?.limitReasoning && (
+                                    <div className="mt-6 pt-5 border-t border-white/10">
+                                        <p className="text-teal-200/80 text-sm leading-relaxed">{analysis.creditLimitBreakdown.limitReasoning}</p>
+                                    </div>
+                                )}
+
+                                {/* Limit Factors */}
+                                {analysis.creditLimitBreakdown?.limitFactors && analysis.creditLimitBreakdown.limitFactors.length > 0 && (
+                                    <div className="mt-5 flex flex-wrap gap-2">
+                                        {analysis.creditLimitBreakdown.limitFactors.map((lf, i) => (
+                                            <span key={i} className={`text-xs font-medium px-3 py-1.5 rounded-lg flex items-center gap-1.5 ${lf.impact === "POSITIVE" ? "bg-teal-400/15 text-teal-300 border border-teal-400/20" :
+                                                    "bg-red-400/10 text-red-300 border border-red-400/15"
+                                                }`}>
+                                                {lf.impact === "POSITIVE" ? "↑" : "↓"} {lf.factor}
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
                         <div className="bg-white rounded-3xl p-8 mb-6 shadow-sm border border-stone-200/60">
                             <div className="flex flex-col lg:flex-row items-center gap-8">
                                 {/* Score Ring */}
@@ -453,7 +585,7 @@ export default function CreditAnalysisPage() {
                                     <div className="bg-white/5 border border-white/10 rounded-xl p-4">
                                         <p className="text-xs text-stone-400 font-medium uppercase mb-2">Risk Level</p>
                                         <p className={`text-lg font-bold ${analysis.aiInsights.riskLevel === "Low Risk" ? "text-teal-400" :
-                                                analysis.aiInsights.riskLevel === "Moderate Risk" ? "text-amber-400" : "text-red-400"
+                                            analysis.aiInsights.riskLevel === "Moderate Risk" ? "text-amber-400" : "text-red-400"
                                             }`}>{analysis.aiInsights.riskLevel}</p>
                                         <p className="text-stone-400 text-sm mt-1">{analysis.aiInsights.riskExplanation}</p>
                                     </div>
@@ -546,11 +678,11 @@ export default function CreditAnalysisPage() {
                             <div className="space-y-3 mb-8">
                                 {analysis.improvementSuggestions.factors.map((f, i) => (
                                     <div key={i} className={`p-4 rounded-xl border flex items-start gap-3 ${f.impact === "POSITIVE" ? "bg-teal-50/50 border-teal-100" :
-                                            f.impact === "NEGATIVE" ? "bg-red-50/50 border-red-100" :
-                                                "bg-stone-50 border-stone-200"
+                                        f.impact === "NEGATIVE" ? "bg-red-50/50 border-red-100" :
+                                            "bg-stone-50 border-stone-200"
                                         }`}>
                                         <span className={`mt-0.5 text-lg ${f.impact === "POSITIVE" ? "text-teal-500" :
-                                                f.impact === "NEGATIVE" ? "text-red-400" : "text-stone-400"
+                                            f.impact === "NEGATIVE" ? "text-red-400" : "text-stone-400"
                                             }`}>
                                             {f.impact === "POSITIVE" ? "↑" : f.impact === "NEGATIVE" ? "↓" : "→"}
                                         </span>
@@ -598,8 +730,8 @@ export default function CreditAnalysisPage() {
                                     {analysis.trustFactorAnalysis.positiveSignals.map((s, i) => (
                                         <div key={i} className="flex items-start gap-3 p-3 bg-teal-50/50 rounded-xl border border-teal-100/60">
                                             <div className={`mt-1 px-1.5 py-0.5 text-[10px] font-bold rounded ${s.strength === "Strong" ? "bg-teal-200 text-teal-800" :
-                                                    s.strength === "Moderate" ? "bg-teal-100 text-teal-700" :
-                                                        "bg-stone-200 text-stone-600"
+                                                s.strength === "Moderate" ? "bg-teal-100 text-teal-700" :
+                                                    "bg-stone-200 text-stone-600"
                                                 }`}>{s.strength}</div>
                                             <div>
                                                 <p className="text-sm font-semibold text-stone-800">{s.signal}</p>

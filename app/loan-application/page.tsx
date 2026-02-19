@@ -9,6 +9,24 @@ export default function LoanApplicationPage() {
     const [tenure, setTenure] = useState(3);
     const [emi, setEmi] = useState(0);
     const [totalPayable, setTotalPayable] = useState(0);
+    const [maxLimit, setMaxLimit] = useState(25000);
+    const [hasAnalysis, setHasAnalysis] = useState(false);
+
+    // Read credit limit from localStorage
+    useEffect(() => {
+        const stored = localStorage.getItem("credzoAnalysis");
+        if (stored) {
+            try {
+                const data = JSON.parse(stored);
+                if (data.creditLimit) {
+                    setMaxLimit(data.creditLimit);
+                    setHasAnalysis(true);
+                    // Clamp current amount to new max
+                    setAmount(prev => Math.min(prev, data.creditLimit));
+                }
+            } catch { /* ignore */ }
+        }
+    }, []);
 
     useEffect(() => {
         const rate = 0.015; // 1.5% monthly interest
@@ -26,6 +44,14 @@ export default function LoanApplicationPage() {
                 <div className="mb-8">
                     <h2 className="text-2xl font-bold text-stone-800">Loan Application</h2>
                     <p className="text-stone-500 text-sm mt-1">Customize your micro-loan offer</p>
+                    {hasAnalysis && (
+                        <div className="mt-2 inline-flex items-center gap-1.5 bg-teal-50 text-teal-700 text-xs font-medium px-3 py-1 rounded-full border border-teal-100">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Based on your Credzo Trust Score
+                        </div>
+                    )}
                 </div>
 
                 {/* Loan Customization Card */}
@@ -41,7 +67,7 @@ export default function LoanApplicationPage() {
                         <input
                             type="range"
                             min="1000"
-                            max="15000"
+                            max={maxLimit}
                             step="500"
                             value={amount}
                             onChange={(e) => setAmount(Number(e.target.value))}
@@ -49,7 +75,7 @@ export default function LoanApplicationPage() {
                         />
                         <div className="flex justify-between text-xs text-stone-400 mt-1">
                             <span>₹1,000</span>
-                            <span>₹15,000</span>
+                            <span>₹{maxLimit.toLocaleString()}</span>
                         </div>
                     </div>
 

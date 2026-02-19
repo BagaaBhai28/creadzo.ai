@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -9,6 +10,21 @@ interface NavbarProps {
 
 export default function Navbar({ showBack = false }: NavbarProps) {
     const router = useRouter();
+    const [user, setUser] = useState<{ name: string } | null>(null);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+        const storedUser = localStorage.getItem("credzoUser");
+        if (storedUser) {
+            setUser(JSON.parse(storedUser));
+        }
+    }, []);
+
+    // Get initials
+    const initials = user?.name
+        ? user.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
+        : "UN";
 
     return (
         <nav className="bg-white/80 backdrop-blur-lg border-b border-stone-200/60 px-6 py-4 flex justify-between items-center sticky top-0 z-20">
@@ -57,15 +73,34 @@ export default function Navbar({ showBack = false }: NavbarProps) {
                 </Link>
             </div>
 
-            <button className="flex items-center gap-3 hover:bg-stone-50 p-2 rounded-xl transition cursor-pointer">
-                <div className="text-right hidden md:block">
-                    <p className="text-sm font-semibold text-stone-700">[User Name]</p>
-                    <p className="text-xs text-stone-400">View Profile</p>
-                </div>
-                <div className="bg-teal-50 text-teal-700 font-bold w-10 h-10 rounded-full flex items-center justify-center border-2 border-teal-100">
-                    UN
-                </div>
-            </button>
+            {mounted && (
+                user ? (
+                    <Link href="/profile" className="flex items-center gap-3 hover:bg-stone-50 p-2 rounded-xl transition cursor-pointer">
+                        <div className="text-right hidden md:block">
+                            <p className="text-sm font-semibold text-stone-700">{user.name}</p>
+                            <p className="text-xs text-stone-400">View Profile</p>
+                        </div>
+                        <div className="bg-teal-50 text-teal-700 font-bold w-10 h-10 rounded-full flex items-center justify-center border-2 border-teal-100">
+                            {initials}
+                        </div>
+                    </Link>
+                ) : (
+                    <div className="flex items-center gap-3">
+                        <Link
+                            href="/onboarding/sign-in"
+                            className="text-sm font-semibold text-stone-600 hover:text-teal-700 transition"
+                        >
+                            Log In
+                        </Link>
+                        <Link
+                            href="/onboarding/sign-up"
+                            className="bg-teal-700 hover:bg-teal-800 text-white text-sm font-bold px-4 py-2 rounded-lg transition shadow-lg shadow-teal-700/20"
+                        >
+                            Join Now
+                        </Link>
+                    </div>
+                )
+            )}
         </nav>
     );
 }

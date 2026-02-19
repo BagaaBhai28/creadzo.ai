@@ -1,9 +1,38 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 
 export default function HomePage() {
+  const [creditLimit, setCreditLimit] = useState(0);
+  const [trustScore, setTrustScore] = useState(0);
+  const [hasAnalysis, setHasAnalysis] = useState(false);
+
+  const [userName, setUserName] = useState("User");
+
+  useEffect(() => {
+    // Load Analysis
+    const storedAnalysis = localStorage.getItem("credzoAnalysis");
+    if (storedAnalysis) {
+      try {
+        const data = JSON.parse(storedAnalysis);
+        setCreditLimit(data.creditLimit || 0);
+        setTrustScore(data.trustScore || 0);
+        setHasAnalysis(true);
+      } catch { /* ignore */ }
+    }
+
+    // Load User
+    const storedUser = localStorage.getItem("credzoUser");
+    if (storedUser) {
+      try {
+        const u = JSON.parse(storedUser);
+        setUserName(u.name.split(" ")[0]); // First name only
+      } catch { /* ignore */ }
+    }
+  }, []);
+
   return (
     <div className="bg-stone-50 font-sans min-h-screen pb-12">
       <Navbar />
@@ -11,7 +40,7 @@ export default function HomePage() {
       <main className="max-w-5xl mx-auto p-6 mt-8">
         <header className="mb-8">
           <h2 className="text-3xl font-bold text-stone-800">
-            Welcome back, [User Name]! 👋
+            Welcome back, {userName}! 👋
           </h2>
           <p className="text-stone-500 mt-2">
             Manage your financial identity and explore opportunities.
@@ -27,20 +56,30 @@ export default function HomePage() {
             <p className="text-stone-400 text-sm font-medium mb-1 tracking-wide uppercase">
               Credzo Micro-Credit Line
             </p>
-            <div className="flex items-baseline gap-2 mb-2">
-              <h3 className="text-5xl font-bold text-white">₹15,000</h3>
-              <span className="text-stone-400 font-medium">Available</span>
-            </div>
-
-            <div className="mt-4">
-              <div className="flex justify-between text-xs text-stone-400 mb-1">
-                <span>Used: ₹0</span>
-                <span>Total Limit: ₹15,000</span>
-              </div>
-              <div className="w-full bg-stone-700 h-2 rounded-full overflow-hidden">
-                <div className="bg-teal-400 h-full rounded-full w-0"></div>
-              </div>
-            </div>
+            {hasAnalysis ? (
+              <>
+                <div className="flex items-baseline gap-2 mb-2">
+                  <h3 className="text-5xl font-bold text-white">₹{creditLimit.toLocaleString()}</h3>
+                  <span className="text-stone-400 font-medium">Available</span>
+                </div>
+                <div className="mt-4">
+                  <div className="flex justify-between text-xs text-stone-400 mb-1">
+                    <span>Used: ₹0</span>
+                    <span>Total Limit: ₹{creditLimit.toLocaleString()}</span>
+                  </div>
+                  <div className="w-full bg-stone-700 h-2 rounded-full overflow-hidden">
+                    <div className="bg-teal-400 h-full rounded-full w-0"></div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex items-baseline gap-2 mb-2">
+                  <h3 className="text-3xl font-bold text-stone-400">Not yet analyzed</h3>
+                </div>
+                <p className="text-stone-500 text-sm">Upload your bank statement to generate your credit limit</p>
+              </>
+            )}
           </div>
 
           <div className="w-full md:w-auto relative z-10 flex flex-col gap-3">

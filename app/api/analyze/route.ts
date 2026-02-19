@@ -16,8 +16,8 @@ export async function POST(req: NextRequest) {
     const { bankStatement, pdfBase64, fileName } = body;
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    // Switching to 1.5-flash which has better free tier availability
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // Switching to 2.0-flash as it is confirmed available
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
     const analysisPrompt = `You are a senior credit analyst AI for Credzo.ai — a fintech platform providing alternative credit scoring for underbanked individuals in India who don't have CIBIL scores.
 
@@ -82,7 +82,18 @@ Return a JSON object with EXACTLY this structure (raw JSON only, no markdown):
       {"factor": "<risk factor>", "traditionalBankView": "<how a normal bank sees this>", "credzoView": "<how Credzo's AI interprets this differently>"}
     ]
   },
-  "recommendedCreditLimit": <number in INR>,
+  "creditLimitBreakdown": {
+    "approvedLimit": <number in INR, realistic based on income — typically 1x-3x monthly income for underbanked>,
+    "maxEligibleLimit": <number in INR, slightly higher than approved>,
+    "limitReasoning": "<2-3 sentences explaining exactly why this credit limit was chosen based on income, spending patterns, and risk>",
+    "incomeToLimitRatio": "<e.g. '2.5x monthly income'>",
+    "limitFactors": [
+      {"factor": "<specific factor>", "impact": "<POSITIVE | NEGATIVE>", "detail": "<how it affected the limit>"}
+    ],
+    "repaymentCapacity": <estimated monthly repayment capacity in INR>,
+    "confidenceLevel": "<High | Medium | Low>"
+  },
+  "recommendedCreditLimit": <same as creditLimitBreakdown.approvedLimit>,
   "scorePercentile": <number 1-100>
 }`;
 
